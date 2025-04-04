@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LabQueue - Novel Lab Sign-off and Queue System</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .queue-card {
+            transition: all 0.3s ease;
+        }
+        .queue-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3B82F6;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #2563EB;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -60px;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+            border-radius: 8px;
+            right: 0;
+        }
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- Navbar -->
+        <nav class="bg-white shadow">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <span class="text-blue-600 font-bold text-xl">LabQueue</span>
+                        </div>
+                        <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                            <a href="#" class="border-blue-500 text-gray-900 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" id="homeBtn">
+                                Home
+                            </a>
+                            <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" id="queueBtn">
+                                Queue
+                            </a>
+                            <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium" id="assistanceBtn">
+                                Request Assistance
+                            </a>
+                            <a href="#" class="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium hidden" id="adminBtn">
+                                Admin
+                            </a>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="dropdown ml-3 relative">
+                            <button class="flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 items-center">
+                                <div class="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                                    <span id="userInitials">JS</span>
+                                </div>
+                                <span class="ml-2 text-gray-700 hidden sm:inline" id="userName">John Smith</span>
+                                <i class="bi bi-chevron-down ml-1 text-gray-500"></i>
+                            </button>
+                            <div class="dropdown-content mt-2">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="profileBtn">Your Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="settingsBtn">Settings</a>
+                                <div class="border-t border-gray-100"></div>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" id="signoutBtn">Sign out</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Mobile menu -->
+            <div class="sm:hidden" id="mobileMenu">
+                <div class="pt-2 pb-3 space-y-1">
+                    <a href="#" class="bg-blue-50 border-blue-500 text-blue-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" id="mobileHomeBtn">Home</a>
+                    <a href="#" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" id="mobileQueueBtn">Queue</a>
+                    <a href="#" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium" id="mobileAssistanceBtn">Request Assistance</a>
+                    <a href="#" class="border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700 block pl-3 pr-4 py-2 border-l-4 text-base font-medium hidden" id="mobileAdminBtn">Admin</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <!-- Login Screen - Show by default -->
+            <div id="loginScreen" class="min-h-screen flex items-center justify-center">
+                <div class="max-w-md w-full space-y-8 p-10 bg-white rounded-xl shadow-md">
+                    <div>
+                        <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">LabQueue</h2>
+                        <p class="mt-2 text-center text-sm text-gray-600">
+                            Sign in to access lab assistance and queue system
+                        </p>
+                    </div>
+                    <form class="mt-8 space-y-6" id="loginForm">
+                        <div class="rounded-md shadow-sm -space-y-px">
+                            <div>
+                                <label for="email" class="sr-only">Email address</label>
+                                <input id="email" name="email" type="email" autocomplete="email" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Email address">
+                            </div>
+                            <div>
+                                <label for="password" class="sr-only">Password</label>
+                                <input id="password" name="password" type="password" autocomplete="current-password" required class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm" placeholder="Password">
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center">
+                                <input id="remember" name="remember" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="remember" class="ml-2 block text-sm text-gray-900">
+                                    Remember me
+                                </label>
+                            </div>
+
+                            <div class="text-sm">
+                                <a href="#" class="font-medium text-blue-600 hover:text-blue-500">
+                                    Forgot your password?
+                                </a>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit" class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Sign in
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Home Screen - Hidden by default -->
+            <div id="homeScreen" class="p-4 md:p-8 max-w-7xl mx-auto hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-4">Welcome, <span id="studentName">John</span></h2>
+                        <p class="text-gray-600 mb-6">Here's your lab assistance overview</p>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between bg-blue-50 p-4 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Current Position in Queue</h3>
+                                    <p class="text-3xl font-bold text-blue-600" id="queuePosition">N/A</p>
+                                </div>
+                                <div class="bg-blue-100 p-3 rounded-full">
+                                    <i class="bi bi-person-lines-fill text-2xl text-blue-600"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center justify-between bg-green-50 p-4 rounded-lg">
+                                <div>
+                                    <h3 class="font-medium">Completed Assistance Requests</h3>
+                                    <p class="text-3xl font-bold text-green-600" id="completedRequests">0</p>
+                                </div>
+                                <div class="bg-green-100 p-3 rounded-full">
+                                    <i class="bi bi-check-circle text-2xl text-green-600"></i>
+                                </div>
+                            </div>
+
+                            <div class="bg-white border border-gray-200 rounded-lg p-4">
+                                <h3 class="font-medium mb-2">Recent Activity</h3>
+                                <ul class="space-y-3" id="recentActivity">
+                                    <li class="text-gray-500 text-sm">No recent activity</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col space-y-6">
+                        <div class="bg-white rounded-lg shadow-md p-6 md:p-8">
+                            <h2 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
+                            <div class="grid grid-cols-2 gap-4">
+                                <button id="quickQueueBtn" class="flex items-center justify-center flex-col p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition duration-150">
+                                    <i class="bi bi-plus-circle text-2xl text-blue-600 mb-2"></i>
+                                    <span class="text-sm font-medium">Join Queue</span>
+                                </button>
+                                <button id="quickViewQueueBtn" class="flex items-center justify-center flex-col p-4 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition duration-150">
+                                    <i class="bi bi-list-ul text-2xl text-indigo-600 mb-2"></i>
+                                    <span class="text-sm font-medium">View Queue</span>
+                                </button>
+                                <button id="quickFeedbackBtn" class="flex items-center justify-center flex-col p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition duration-150">
+                                    <i class="bi bi-chat-dots text-2xl text-purple-600 mb-2"></i>
+                                    <span class="text-sm font-medium">Send Feedback</span>
+                                </button>
+                                <button id="quickResourcesBtn" class="flex items-center justify-center flex-col p-4 bg-green-50 rounded-lg hover:bg-green-100 transition duration-150">
+                                    <i class="bi bi-book text-2xl text-green-600 mb-2"></i>
+                                    <span class="text-sm font-medium">Resources</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white rounded-lg shadow-md p-6 md:p-8 flex-grow">
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-bold text-gray-800">Current Queue Status</h2>
+                                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium" id="queueCount">0 students waiting</span>
+                            </div>
+                            <div class="overflow-hidden rounded-lg border border-gray-200">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Position</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                            <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Wait Time</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="queuePreview" class="bg-white divide-y divide-gray-200">
+                                        <tr>
+                                            <td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">Queue is currently empty</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="mt-4 text-center">
+                                <button id="viewFullQueueBtn" class="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-900">
+                                    View full queue <i class="bi bi-arrow-right ml-2"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Queue Screen - Hidden by default -->
+            <div id="queueScreen" class="p-4 md:p-8 max-w-7xl mx-auto hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2 md:mb-0">Lab Assistance Queue</h2>
+                        <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                            <div class="relative">
+                                <select id="queueSort" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="timeAsc">Waiting Time (Ascending)</option>
+                                    <option value="timeDesc">Waiting Time (Descending)</option>
+                                    <option value="nameAsc">Name (A-Z)</option>
+                                    <option value="nameDesc">Name (Z-A)</option>
+                                </select>
+                            </div>
+                            <div class="relative">
+                                <select id="queueFilter" class="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="all">All Requests</option>
+                                    <option value="assistance">Assistance Only</option>
+                                    <option value="signoff">Sign-offs Only</option>
+                                </select>
+                            </div>
+                            <button id="refreshQueueBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="bi bi-arrow-clockwise mr-2"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-hidden rounded-lg border border-gray-200 mb-6">
+                        <div id="queueStats" class="grid grid-cols-1 md:grid-cols-4 divide-y md:divide-y-0 md:divide-x">
+                            <div class="p-4 text-center">
+                                <p class="text-sm text-gray-600">Waiting Students</p>
+                                <p class="text-2xl font-bold text-blue-600">0</p>
+                            </div>
+                            <div class="p-4 text-center">
+                                <p class="text-sm text-gray-600">Average Wait Time</p>
+                                <p class="text-2xl font-bold text-amber-600">0 min</p>
+                            </div>
+                            <div class="p-4 text-center">
+                                <p class="text-sm text-gray-600">Lab Assistants Active</p>
+                                <p class="text-2xl font-bold text-green-600">0</p>
+                            </div>
+                            <div class="p-4 text-center">
+                                <p class="text-sm text-gray-600">Completed Today</p>
+                                <p class="text-2xl font-bold text-indigo-600">0</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="queueContainer" class="space-y-4">
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="bi bi-list-ul text-6xl mb-2"></i>
+                            <p>Queue is currently empty</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Assistance Screen - Hidden by default -->
+            <div id="requestAssistanceScreen" class="p-4 md:p-8 max-w-7xl mx-auto hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">Request Lab Assistance</h2>
+
+                    <form id="assistanceForm" class="space-y-6">
+                        <div class="grid grid-cols-1 gap-6">
+                            <div>
+                                <label for="requestType" class="block text-sm font-medium text-gray-700">Request Type</label>
+                                <select id="requestType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="assistance">Lab Assistance</option>
+                                    <option value="signoff">Lab Sign-off</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="courseModule" class="block text-sm font-medium text-gray-700">Course/Module</label>
+                                <select id="courseModule" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                                    <option value="cs101">CS101 - Introduction to Programming</option>
+                                    <option value="cs201">CS201 - Data Structures</option>
+                                    <option value="cs301">CS301 - Database Systems</option>
+                                    <option value="cs401">CS401 - Web Development</option>
+                                    <option value="cs501">CS501 - Artificial Intelligence</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="problemDescription" class="block text-sm font-medium text-gray-700">Problem Description</label>
+                                <textarea id="problemDescription" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="Please describe your issue or what you need help with..."></textarea>
+                            </div>
+
+                            <div>
+                                <label for="codeLink" class="block text-sm font-medium text-gray-700">Code Link (GitHub, GitLab, etc.)</label>
+                                <div class="mt-1 flex rounded-md shadow-sm">
+                                    <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">URL</span>
+                                    <input type="text" id="codeLink" class="flex-1 min-w-0 block w-full px-3 py-2 rounded-none rounded-r-md focus:ring-blue-500 focus:border-blue-500 sm:text-sm border-gray-300" placeholder="https://github.com/username/repo">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Screenshot/Image</label>
+                                <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
+                                    <div class="space-y-1 text-center">
+                                        <div id="previewContainer" class="hidden mb-3">
+                                            <img id="imagePreview" class="mx-auto h-48 object-cover" src="" alt="Preview">
+                                        </div>
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <div class="flex text-sm text-gray-600 justify-center">
+                                            <label for="screenshot" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
+                                                <span>Upload a file</span>
+                                                <input id="screenshot" name="screenshot" type="file" class="sr-only" accept="image/*">
+                                            </label>
+                                            <p class="pl-1">or drag and drop</p>
+                                        </div>
+                                        <p class="text-xs text-gray-500">
+                                            PNG, JPG, GIF up to 5MB
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <input id="urgentRequest" name="urgentRequest" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                <label for="urgentRequest" class="ml-2 block text-sm text-gray-900">
+                                    Mark as urgent (please use only when truly needed)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end">
+                            <button type="button" id="cancelRequestBtn" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3">
+                                Cancel
+                            </button>
+                            <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                Submit Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Admin Screen - Hidden by default -->
+            <div id="adminScreen" class="p-4 md:p-8 max-w-7xl mx-auto hidden">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                        <h2 class="text-2xl font-bold text-gray-800 mb-2 md:mb-0">Admin Dashboard</h2>
+                        <div class="flex space-x-3">
+                            <button id="adminManageUsersBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="bi bi-people mr-2"></i> Manage Users
+                            </button>
+                            <button id="adminSettingsBtn" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <i class="bi bi-gear mr-2"></i> Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-800">Total Requests</h3>
+                                <div class="rounded-full p-2 bg-blue-100">
+                                    <i class="bi bi-clipboard-data text-xl text-blue-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-3xl font-bold text-blue-600 mt-2">0</p>
+                            <p class="text-sm text-gray-500 mt-1">Today</p>
+                        </div>
+                        
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-800">Completed</h3>
+                                <div class="rounded-full p-2 bg-green-100">
+                                    <i class="bi bi-check-circle text-xl text-green-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-3xl font-bold text-green-600 mt-2">0</p>
+                            <p class="text-sm text-gray-500 mt-1">Today</p>
+                        </div>
+                        
+                        <div class="bg-amber-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-800">Avg. Wait Time</h3>
+                                <div class="rounded-full p-2 bg-amber-100">
+                                    <i class="bi bi-hourglass-split text-xl text-amber-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-3xl font-bold text-amber-600 mt-2">0 min</p>
+                            <p class="text-sm text-gray-500 mt-1">Today</p>
+                        </div>
+                        
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-medium text-gray-800">Active TAs</h3>
+                                <div class="rounded-full p-2 bg-purple-100">
+                                    <i class="bi bi-person-badge text-xl text-purple-600"></i>
+                                </div>
+                            </div>
+                            <p class="text-3xl font-bold text-purple-600 mt-2">0</p>
+                            <p class="text-sm text-gray-500 mt-1">Now</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+                        <h3 class="font-medium mb-4">Student Queue Management</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Queue #</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Request</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Waiting</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="adminQueueTable">
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">No students in queue</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="col-span-1 md:col-span-2 bg-white border border-gray-200 rounded-lg p-4">
+                            <h3 class="font-medium mb-4">Feedback Overview</h3>
+                            <div class="h-64 flex items-center justify-center bg-gray-100 rounded-lg">
+                                <p class="text-gray-500">Chart will appear here</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h3 class="font-medium mb-4">Recent Feedback</h3>
+                            <div class="space-y-3" id="adminRecentFeedback">
+                                <p class="text-gray-500 text-sm text-center py-8">No feedback received yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feedback Modal - Hidden by default -->
+            <div id="feedbackModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <i class="bi bi-chat-dots text-blue-600"></i>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="feedbackModalTitle">
+                                        Provide Anonymous Feedback
+                                    </h3>
+                                    <div class="mt-2">
+                                        <p class="text-sm text-gray-500">
+                                            Please share your experience with the lab assistant. Your feedback helps us improve.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="mt-4">
+                                <div class="mb-4">
+                                    <label class="block text-sm font-medium text-gray-700">Rate your experience</label>
+                                    <div class="flex space-x-2 mt-2" id="ratingStars">
+                                        <button type="button" class="text-gray-300 text-2xl hover:text-yellow-400" data-rating="1">★</button>
+                                        <button type="button" class="text-gray-300 text-2xl hover:text-yellow-400" data-rating="2">★</button>
+                                        <button type="button" class="text-gray-300 text-2xl hover:text-yellow-400" data-rating="3">★</button>
+                                        <button type="button" class="text-gray-300 text-2xl hover:text-yellow-400" data-rating="4">★</button>
+                                        <button type="button" class="text-gray-300 text-2xl hover:text-yellow-400" data-rating="5">★</button>
+                                    </div>
+                                </div>
+                                <div class="mb-4">
+                                    <label for="feedbackMessage" class="block text-sm font-medium text-gray-700">Comments</label>
+                                    <textarea id="feedbackMessage" rows="4" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" placeholder="What went well? What could be improved?"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="button" id="submitFeedbackBtn" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
+                                Submit Feedback
+                            </button>
+                            <button type="button" id="closeFeedbackBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Request Details Modal - Hidden by default -->
+            <div id="requestDetailsModal" class="fixed z-10 inset-0 overflow-y-auto hidden">
+                <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                    <div class="fixed inset-0 transition-opacity" aria-hidden="true">
+                        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
+                    </div>
+                    <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                            <div class="sm:flex sm:items-start">
+                                <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
+                                    <i class="bi bi-info-circle text-blue-600"></i>
+                                </div>
+                                <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                                    <h3 class="text-lg leading-6 font-medium text-gray-900" id="requestDetailsTitle">
+                                        Request Details
+                                    </h3>
+                                </div>
+                            </div>
+                            <div class="mt-4 space-y-4" id="requestDetailsContent">
+                                <!-- Content will be populated dynamically -->
+                            </div>
+                        </div>
+                        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                            <button type="button" id="closeDetailsBtn" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm">
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-white mt-auto">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row justify-between items-center">
+                <div class="flex mb-4 sm:mb-0">
+                    <p class="text-sm text-gray-500">© 2023 LabQueue. All rights reserved.</p>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="#" class="text-gray-400 hover:text-gray-500">
+                        <span class="sr-only">Help Center</span>
+                        <i class="bi bi-question-circle"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-gray-500">
+                        <span class="sr-only">Terms of Service</span>
+                        <i class="bi bi-file-earmark-text"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-gray-500">
+                        <span class="sr-only">Privacy Policy</span>
+                        <i class="bi bi-shield-check"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mock data for demonstration purposes
+            let users = [
+                { id: 1, name: 'John Smith', email: 'john@example.com', password: 'password', role: 'student' },
+                { id: 2, name: 'Jane Doe', email: 'jane@example.com', password: 'password', role: 'student' },
+                { id: 3, name: 'Admin User', email: 'admin@example.com', password: 'password', role: 'admin' }
+            ];
+            
+            let currentUser = null;
+            
+            let queueItems = [
+                { id: 1, studentId: 2, studentName: 'Jane Doe', requestType: 'assistance', course: 'CS101', description: 'Having trouble with for loops', codeLink: 'https://github.com/janedoe/cs101', screenshot: null, urgent: false, timestamp: new Date(Date.now() - 15 * 60000), status: 'waiting' },
+                { id: 2, studentId: 1, studentName: 'John Smith', requestType: 'signoff', course: 'CS401', description: 'Ready for sign-off on lab 3', codeLink: 'https://github.com/johnsmith/cs401', screenshot: null, urgent: true, timestamp: new Date(Date.now() - 25 * 60000), status: 'waiting' }
+            ];
+            
+            let completedRequests = [
+                { id: 3, studentId: 1, studentName: 'John Smith', requestType: 'assistance', course: 'CS201', description: 'Help with linked lists', feedback: 4, timestamp: new Date(Date.now() - 120 * 60000), completedAt: new Date(Date.now() - 90 * 60000) }
+            ];
+            
+            let feedback = [
+                { id: 1, requestId: 3, rating: 4, message: 'The TA was very helpful and explained things clearly.', timestamp: new Date(Date.now() - 85 * 60000) }
+            ];
+            
+            // Elements
+            const loginScreen = document.getElementById('loginScreen');
+            const homeScreen = document.getElementById('homeScreen');
+            const queueScreen = document.getElementById('queueScreen');
+            const requestAssistanceScreen = document.getElementById('requestAssistanceScreen');
+            const adminScreen = document.getElementById('adminScreen');
+            
+            const adminBtn = document.getElementById('adminBtn');
+            const mobileAdminBtn = document.getElementById('mobileAdminBtn');
+            const loginForm = document.getElementById('loginForm');
+            
+            // Navigation
+            const homeBtn = document.getElementById('homeBtn');
+            const queueBtn = document.getElementById('queueBtn');
+            const assistanceBtn = document.getElementById('assistanceBtn');
+            
+            const mobileHomeBtn = document.getElementById('mobileHomeBtn');
+            const mobileQueueBtn = document.getElementById('mobileQueueBtn');
+            const mobileAssistanceBtn = document.getElementById('mobileAssistanceBtn');
+            
+            // Quick links
+            const quickQueueBtn = document.getElementById('quickQueueBtn');
+            const quickViewQueueBtn = document.getElementById('quickViewQueueBtn');
+            const quickFeedbackBtn = document.getElementById('quickFeedbackBtn');
+            const viewFullQueueBtn = document.getElementById('viewFullQueueBtn');
+
+            // Forms and modals
+            const assistanceForm = document.getElementById('assistanceForm');
+            const cancelRequestBtn = document.getElementById('cancelRequestBtn');
+            const feedbackModal = document.getElementById('feedbackModal');
+            const closeFeedbackBtn = document.getElementById('closeFeedbackBtn');
+            const submitFeedbackBtn = document.getElementById('submitFeedbackBtn');
+            const ratingStars = document.getElementById('ratingStars').querySelectorAll('button');
+            const requestDetailsModal = document.getElementById('requestDetailsModal');
+            const closeDetailsBtn = document.getElementById('closeDetailsBtn');
+            
+            // Login form handler
+            loginForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const user = users.find(u => u.email === email && u.password === password);
+                
+                if (user) {
+                    currentUser = user;
+                    document.getElementById('userInitials').textContent = getInitials(user.name);
+                    document.getElementById('userName').textContent = user.name;
+                    document.getElementById('studentName').textContent = user.name.split(' ')[0];
+                    
+                    loginScreen.classList.add('hidden');
+                    homeScreen.classList.remove('hidden');
+                    
+                    if (user.role === 'admin') {
+                        adminBtn.classList.remove('hidden');
+                        mobileAdminBtn.classList.remove('hidden');
+                    } else {
+                        adminBtn.classList.add('hidden');
+                        mobileAdminBtn.classList.add('hidden');
+                    }
+                    
+                    updateQueueData();
+                    updateHomeScreenData();
+                } else {
+                    alert('Invalid email or password');
+                }
+            });
+            
+            // Navigation handlers
+            homeBtn.addEventListener('click', function() {
+                hideAllScreens();
+                homeScreen.classList.remove('hidden');
+                updateHomeScreenData();
+            });
+            
+            mobileHomeBtn.addEventListener('click', function() {
+                hideAllScreens();
+                homeScreen.classList.remove('hidden');
+                updateHomeScreenData();
+            });
+            
+            queueBtn.addEventListener('click', function() {
+                hideAllScreens();
+                queueScreen.classList.remove('hidden');
+                updateQueueDisplay();
+            });
+            
+            mobileQueueBtn.addEventListener('click', function() {
+                hideAllScreens();
+                queueScreen.classList.remove('hidden');
+                updateQueueDisplay();
+            });
+            
+            assistanceBtn.addEventListener('click', function() {
+                hideAllScreens();
+                requestAssistanceScreen.classList.remove('hidden');
+            });
+            
+            mobileAssistanceBtn.addEventListener('click', function() {
+                hideAllScreens();
+                requestAssistanceScreen.classList.remove('hidden');
+            });
+            
+            adminBtn.addEventListener('click', function() {
+                hideAllScreens();
+                adminScreen.classList.remove('hidden');
+                updateAdminDashboard();
+            });
+            
+            mobileAdminBtn.addEventListener('click', function() {
+                hideAllScreens();
+                adminScreen.classList.remove('hidden');
+                updateAdminDashboard();
+            });
+            
+            // Quick link handlers
+            quickQueueBtn.addEventListener('click', function() {
+                hideAllScreens();
+                requestAssistanceScreen.classList.remove('hidden');
+            });
+            
+            quickViewQueueBtn.addEventListener('click', function() {
+                hideAllScreens();
+                queueScreen.classList.remove('hidden');
+                updateQueueDisplay();
+            });
+            
+            viewFullQueueBtn.addEventListener('click', function() {
+                hideAllScreens();
+                queueScreen.classList.remove('hidden');
+                updateQueueDisplay();
+            });
+            
+            quickFeedbackBtn.addEventListener('click', function() {
+                showFeedbackModal();
+            });
+            
+            // Assistance form handlers
+            assistanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const requestType = document.getElementById('requestType').value;
+                const course = document.getElementById('courseModule').value;
+                const description = document.getElementById('problemDescription').value;
+                const codeLink = document.getElementById('codeLink').value;
+                const urgent = document.getElementById('urgentRequest').checked;
+                
+                // Add to queue
+                const newRequest = {
+                    id: queueItems.length > 0 ? Math.max(...queueItems.map(item => item.id)) + 1 : 1,
+                    studentId: currentUser.id,
+                    studentName: currentUser.name,
+                    requestType: requestType,
+                    course: course,
+                    description: description,
+                    codeLink: codeLink,
+                    urgent: urgent,
+                    timestamp: new Date(),
+                    status: 'waiting'
+                };
+                
+                queueItems.push(newRequest);
+                
+                // Reset form
+                assistanceForm.reset();
+                document.getElementById('previewContainer').classList.add('hidden');
+                
+                // Show home screen with updated data
+                hideAllScreens();
+                homeScreen.classList.remove('hidden');
+                updateHomeScreenData();
+                
+                // Show confirmation
+                alert('Request submitted successfully! You are now in the queue.');
+            });
+            
+            cancelRequestBtn.addEventListener('click', function() {
+                assistanceForm.reset();
+                document.getElementById('previewContainer').classList.add('hidden');
+                hideAllScreens();
+                homeScreen.classList.remove('hidden');
+            });
+            
+            // Screenshot preview
+            document.getElementById('screenshot').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        document.getElementById('imagePreview').src = event.target.result;
+                        document.getElementById('previewContainer').classList.remove('hidden');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Feedback modal handlers
+            closeFeedbackBtn.addEventListener('click', function() {
+                feedbackModal.classList.add('hidden');
+            });
+            
+            submitFeedbackBtn.addEventListener('click', function() {
+                const rating = parseInt(document.querySelector('#ratingStars .text-yellow-400')?.getAttribute('data-rating') || '0');
+                const message = document.getElementById('feedbackMessage').value;
+                
+                if (rating === 0) {
+                    alert('Please provide a rating');
+                    return;
+                }
+                
+                // Add feedback
+                feedback.push({
+                    id: feedback.length > 0 ? Math.max(...feedback.map(item => item.id)) + 1 : 1,
+                    requestId: null, // For anonymous feedback not tied to a specific request
+                    rating: rating,
+                    message: message,
+                    timestamp: new Date()
+                });
+                
+                // Reset and close
+                resetRatingStars();
+                document.getElementById('feedbackMessage').value = '';
+                feedbackModal.classList.add('hidden');
+                
+                alert('Thank you for your feedback!');
+            });
+            
+            // Rating stars handlers
+            ratingStars.forEach(star => {
+                star.addEventListener('click', function() {
+                    const rating = parseInt(this.getAttribute('data-rating'));
+                    resetRatingStars();
+                    
+                    // Set selected stars
+                    for (let i = 0; i < rating; i++) {
+                        ratingStars[i].classList.remove('text-gray-300');
+                        ratingStars[i].classList.add('text-yellow-400');
+                    }
+                });
+            });
+            
+            // Request details modal handler
+            closeDetailsBtn.addEventListener('click', function() {
+                requestDetailsModal.classList.add('hidden');
+            });
+            
+            // Queue sorting and filtering
+            document.getElementById('queueSort').addEventListener('change', updateQueueDisplay);
+            document.getElementById('queueFilter').addEventListener('change', updateQueueDisplay);
+            document.getElementById('refreshQueueBtn').addEventListener('click', function() {
+                updateQueueDisplay();
+                alert('Queue refreshed!');
+            });
+            
+            // Utility functions
+            function hideAllScreens() {
+                loginScreen.classList.add('hidden');
+                homeScreen.classList.add('hidden');
+                queueScreen.classList.add('hidden');
+                requestAssistanceScreen.classList.add('hidden');
+                adminScreen.classList.add('hidden');
+            }
+            
+            function getInitials(name) {
+                return name.split(' ').map(n => n[0]).join('');
+            }
+            
+            function getElapsedTime(date) {
+                const elapsed = Math.floor((new Date() - date) / 60000);
+                
+                if (elapsed < 1) return 'Just now';
+                if (elapsed === 1) return '1 minute';
+                if (elapsed < 60) return `${elapsed} minutes`;
+                
+                const hours = Math.floor(elapsed / 60);
+                if (hours === 1) return '1 hour';
+                if (hours < 24) return `${hours} hours`;
+                
+                const days = Math.floor(hours / 24);
+                if (days === 1) return '1 day';
+                return `${days} days`;
+            }
+            
+            function resetRatingStars() {
+                ratingStars.forEach(star => {
+                    star.classList.remove('text-yellow-400');
+                    star.classList.add('text-gray-300');
+                });
+            }
+            
+            function showFeedbackModal() {
+                resetRatingStars();
+                document.getElementById('feedbackMessage').value = '';
+                feedbackModal.classList.remove('hidden');
+            }
+            
+            function getQueuePosition(studentId) {
+                const userRequests = queueItems.filter(item => item.studentId === studentId && item.status === 'waiting');
+                if (userRequests.length === 0) return 'N/A';
+                
+                const earliestRequest = userRequests.reduce((prev, current) => 
+                    (prev.timestamp < current.timestamp) ? prev : current
+                );
+                
+                const position = queueItems
+                    .filter(item => item.status === 'waiting')
+                    .sort((a, b) => a.timestamp - b.timestamp)
+                    .findIndex(item => item.id === earliestRequest.id) + 1;
+                
+                return position.toString();
+            }
+            
+            function updateQueueData() {
+                const waitingCount = queueItems.filter(item => item.status === 'waiting').length;
+                const completedToday = completedRequests.filter(req => {
+                    const today = new Date();
+                    return req.completedAt.setHours(0, 0, 0, 0) === today.setHours(0, 0, 0, 0);
+                }).length;
+                
+                // Calculate average wait time
+                let totalWaitTime = 0;
+                let completedCount = 0;
+                
+                completedRequests.forEach(req => {
+                    if (req.completedAt) {
+                        const waitTime = (req.completedAt - req.timestamp) / 60000; // in minutes
+                        totalWaitTime += waitTime;
+                        completedCount++;
+                    }
+                });
+                
+                const avgWaitTime = completedCount > 0 ? Math.round(totalWaitTime / completedCount) : 0;
+                
+                // Update queue stats
+                document.getElementById('queueCount').textContent = `${waitingCount} students waiting`;
+                
+                const queueStats = document.getElementById('queueStats').children;
+                queueStats[0].querySelector('p:last-child').textContent = waitingCount;
+                queueStats[1].querySelector('p:last-child').textContent = `${avgWaitTime} min`;
+                queueStats[2].querySelector('p:last-child').textContent = '2'; // Mock active lab assistants
+                queueStats[3].querySelector('p:last-child').textContent = completedToday;
+            }
+            
+            function updateHomeScreenData() {
+                if (!currentUser) return;
+                
+                // Update queue position
+                document.getElementById('queuePosition').textContent = getQueuePosition(currentUser.id);
+                
+                // Update completed requests
+                const userCompletedCount = completedRequests.filter(req => req.studentId === currentUser.id).length;
+                document.getElementById('completedRequests').textContent = userCompletedCount;
+                
+                // Update recent activity
+                const recentActivityContainer = document.getElementById('recentActivity');
+                recentActivityContainer.innerHTML = '';
+                
+                const userRequests = [...queueItems.filter(item => item.studentId === currentUser.id), 
+                                    ...completedRequests.filter(req => req.studentId === currentUser.id)]
+                                    .sort((a, b) => b.timestamp - a.timestamp)
+                                    .slice(0, 3);
+                
+                if (userRequests.length === 0) {
+                    recentActivityContainer.innerHTML = '<li class="text-gray-500 text-sm">No recent activity</li>';
+                } else {
+                    userRequests.forEach(req => {
+                        const statusClass = req.status === 'waiting' ? 'text-blue-600' : 'text-green-600';
+                        const statusText = req.status === 'waiting' ? 'In Queue' : 'Completed';
+                        
+                        recentActivityContainer.innerHTML += `
+                            <li class="flex justify-between items-center">
+                                <div>
+                                    <p class="text-sm font-medium">${req.requestType === 'assistance' ? 'Assistance Request' : 'Sign-off Request'}</p>
+                                    <p class="text-xs text-gray-500">${req.course}</p>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm ${statusClass} font-medium">${statusText}</p>
+                                    <p class="text-xs text-gray-500">${getElapsedTime(req.timestamp)} ago</p>
+                                </div>
+                            </li>
+                        `;
+                    });
+                }
+                
+                // Update queue preview
+                updateQueuePreview();
+            }
+            
+            function updateQueuePreview() {
+                const queuePreview = document.getElementById('queuePreview');
+                const waitingItems = queueItems.filter(item => item.status === 'waiting')
+                                             .sort((a, b) => a.timestamp - b.timestamp)
+                                             .slice(0, 3);
+                
+                queuePreview.innerHTML = '';
+                
+                if (waitingItems.length === 0) {
+                    queuePreview.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-sm text-gray-500 text-center">Queue is currently empty</td></tr>';
+                    return;
+                }
+                
+                waitingItems.forEach((item, index) => {
+                    const waitTime = getElapsedTime(item.timestamp);
+                    const isCurrentUser = item.studentId === currentUser?.id;
+                    const rowClass = isCurrentUser ? 'bg-blue-50' : '';
+                    
+                    queuePreview.innerHTML += `
+                        <tr class="${rowClass}">
+                            <td class="px-4 py-3 text-sm">${index + 1}</td>
+                            <td class="px-4 py-3 text-sm font-medium ${isCurrentUser ? 'text-blue-600' : ''}">${item.studentName}${isCurrentUser ? ' (You)' : ''}</td>
+                            <td class="px-4 py-3 text-sm">${item.requestType === 'assistance' ? 'Assistance' : 'Sign-off'}</td>
+                            <td class="px-4 py-3 text-sm">${waitTime}</td>
+                        </tr>
+                    `;
+                });
+            }
+            
+            function updateQueueDisplay() {
+                const queueContainer = document.getElementById('queueContainer');
+                const sortType = document.getElementById('queueSort').value;
+                const filterType = document.getElementById('queueFilter').value;
+                
+                // Filter items
+                let filteredItems = queueItems.filter(item => item.status === 'waiting');
+                if (filterType !== 'all') {
+                    filteredItems = filteredItems.filter(item => item.requestType === filterType);
+                }
+                
+                // Sort items
+                switch (sortType) {
+                    case 'timeAsc':
+                        filteredItems.sort((a, b) => a.timestamp - b.timestamp);
+                        break;
+                    case 'timeDesc':
+                        filteredItems.sort((a, b) => b.timestamp - a.timestamp);
+                        break;
+                    case 'nameAsc':
+                        filteredItems.sort((a, b) => a.studentName.localeCompare(b.studentName));
+                        break;
+                    case 'nameDesc':
+                        filteredItems.sort((a, b) => b.studentName.localeCompare(a.studentName));
+                        break;
+                }
+                
+                // Display queue
+                queueContainer.innerHTML = '';
+                
+                if (filteredItems.length === 0) {
+                    queueContainer.innerHTML = `
+                        <div class="text-center py-6 text-gray-500">
+                            <i class="bi bi-list-ul text-6xl mb-2"></i>
+                            <p>Queue is currently empty</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                filteredItems.forEach((item, index) => {
+                    const isCurrentUser = item.studentId === currentUser?.id;
+                    const waitTime = getElapsedTime(item.timestamp);
+                    const cardClass = item.urgent ? 'border-red-300 bg-red-50' : (isCurrentUser ? 'border-blue-300 bg-blue-50' : 'border-gray-200');
+                    const typeIcon = item.requestType === 'assistance' ? 'bi-question-circle' : 'bi-check-circle';
+                    const typeText = item.requestType === 'assistance' ? 'Assistance' : 'Sign-off';
+                    
+                    queueContainer.innerHTML += `
+                        <div class="queue-card p-4 rounded-lg border ${cardClass} relative" data-id="${item.id}">
+                            <div class="flex flex-col md:flex-row md:items-center justify-between">
+                                <div class="flex items-center mb-3 md:mb-0">
+                                    <div class="bg-white border border-gray-200 rounded-full h-10 w-10 flex items-center justify-center mr-3 flex-shrink-0">
+                                        <span class="font-bold text-blue-600">${index + 1}</span>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-medium text-gray-900">${item.studentName}${isCurrentUser ? ' (You)' : ''}</h3>
+                                        <div class="flex items-center text-sm text-gray-500">
+                                            <i class="bi ${typeIcon} mr-1"></i> ${typeText} - ${item.course}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium">Waiting for</div>
+                                        <div class="text-sm text-gray-500">${waitTime}</div>
+                                    </div>
+                                    <button class="p-2 rounded-full bg-blue-100 hover:bg-blue-200 view-details-btn" data-id="${item.id}">
+                                        <i class="bi bi-eye text-blue-700"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            ${item.urgent ? '<div class="absolute top-0 right-0 mt-2 mr-2"><span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="bi bi-exclamation-triangle-fill mr-1"></i> Urgent</span></div>' : ''}
+                        </div>
+                    `;
+                });
+                
+                // Add event listeners to view details buttons
+                document.querySelectorAll('.view-details-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const requestId = parseInt(this.getAttribute('data-id'));
+                        showRequestDetails(requestId);
+                    });
+                });
+                
+                updateQueueData();
+            }
+            
+            function showRequestDetails(requestId) {
+                const request = queueItems.find(item => item.id === requestId);
+                if (!request) return;
+                
+                const requestDetailsContent = document.getElementById('requestDetailsContent');
+                requestDetailsContent.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <span class="text-xs font-medium text-gray-500">REQUEST TYPE</span>
+                            <p class="font-medium">${request.requestType === 'assistance' ? 'Assistance Request' : 'Sign-off Request'}</p>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <span class="text-xs font-medium text-gray-500">COURSE</span>
+                            <p class="font-medium">${request.course}</p>
+                        </div>
+                        
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <span class="text-xs font-medium text-gray-500">DESCRIPTION</span>
+                            <p class="mt-1">${request.description}</p>
+                        </div>
+                        
+                        ${request.codeLink ? `
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <span class="text-xs font-medium text-gray-500">CODE LINK</span>
+                            <a href="${request.codeLink}" target="_blank" class="block mt-1 text-blue-600 hover:underline break-words">${request.codeLink}</a>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="bg-gray-50 rounded-lg p-3">
+                            <span class="text-xs font-medium text-gray-500">WAITING SINCE</span>
+                            <p class="font-medium">${request.timestamp.toLocaleTimeString()} (${getElapsedTime(request.timestamp)} ago)</p>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('requestDetailsModal').classList.remove('hidden');
+            }
+            
+            function updateAdminDashboard() {
+                // Update admin queue table
+                const adminQueueTable = document.getElementById('adminQueueTable');
+                adminQueueTable.innerHTML = '';
+                
+                const waitingItems = queueItems.filter(item => item.status === 'waiting')
+                                              .sort((a, b) => a.timestamp - b.timestamp);
+                
+                if (waitingItems.length === 0) {
+                    adminQueueTable.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-sm text-gray-500">No students in queue</td></tr>';
+                    return;
+                }
+                
+                waitingItems.forEach((item, index) => {
+                    const waitTime = getElapsedTime(item.timestamp);
+                    const urgentBadge = item.urgent ? '<span class="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">Urgent</span>' : '';
+                    
+                    adminQueueTable.innerHTML += `
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.studentName}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.requestType === 'assistance' ? 'Assistance' : 'Sign-off'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.course}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${waitTime}</td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">Waiting</span>
+                                ${urgentBadge}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-blue-600 hover:text-blue-900 mr-2 admin-view-btn" data-id="${item.id}">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="text-green-600 hover:text-green-900 mr-2 admin-complete-btn" data-id="${item.id}">
+                                    <i class="bi bi-check-circle"></i>
+                                </button>
+                                <button class="text-red-600 hover:text-red-900 admin-remove-btn" data-id="${item.id}">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Add event listeners to admin buttons
+                document.querySelectorAll('.admin-view-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const requestId = parseInt(this.getAttribute('data-id'));
+                        showRequestDetails(requestId);
+                    });
+                });
+                
+                document.querySelectorAll('.admin-complete-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const requestId = parseInt(this.getAttribute('data-id'));
+                        completeRequest(requestId);
+                    });
+                });
+                
+                document.querySelectorAll('.admin-remove-btn').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const requestId = parseInt(this.getAttribute('data-id'));
+                        removeRequest(requestId);
+                    });
+                });
+                
+                // Update recent feedback
+                updateAdminFeedback();
+            }
+            
+            function updateAdminFeedback() {
+                const recentFeedbackContainer = document.getElementById('adminRecentFeedback');
+                recentFeedbackContainer.innerHTML = '';
+                
+                const recentFeedback = feedback.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+                
+                if (recentFeedback.length === 0) {
+                    recentFeedbackContainer.innerHTML = '<p class="text-gray-500 text-sm text-center py-8">No feedback received yet</p>';
+                    return;
+                }
+                
+                recentFeedback.forEach(fb => {
+                    const stars = '★'.repeat(fb.rating) + '☆'.repeat(5 - fb.rating);
+                    
+                    recentFeedbackContainer.innerHTML += `
+                        <div class="p-3 border border-gray-200 rounded-lg">
+                            <div class="flex justify-between items-center mb-2">
+                                <div class="text-yellow-400">${stars}</div>
+                                <span class="text-xs text-gray-500">${getElapsedTime(fb.timestamp)} ago</span>
+                            </div>
+                            <p class="text-sm text-gray-600">"${fb.message}"</p>
+                        </div>
+                    `;
+                });
+            }
+            
+            function completeRequest(requestId) {
+                const request = queueItems.find(item => item.id === requestId);
+                if (!request) return;
+                
+                // Mark as completed and move to completed requests
+                request.status = 'completed';
+                request.completedAt = new Date();
+                completedRequests.push(request);
+                
+                // Remove from active queue
+                queueItems = queueItems.filter(item => item.id !== requestId);
+                
+                updateAdminDashboard();
+                alert(`Request from ${request.studentName} has been marked as completed.`);
+            }
+            
+            function removeRequest(requestId) {
+                if (confirm('Are you sure you want to remove this request from the queue?')) {
+                    // Remove from queue
+                    queueItems = queueItems.filter(item => item.id !== requestId);
+                    
+                    updateAdminDashboard();
+                    alert('Request has been removed from the queue.');
+                }
+            }
+        });
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
